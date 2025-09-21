@@ -1,0 +1,40 @@
+# Flask and web server dependencies
+Flask==2.3.3
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
+
+# Machine Learning and AI
+tensorflow==2.13.0
+numpy==1.24.3
+Pillow==10.0.1
+scikit-learn==1.3.0
+
+# Audio processing
+SpeechRecognition==3.10.0
+pydub==0.25.1
+# Note: pyaudio might need manual installation on some systems
+# pyaudio==0.2.11
+
+# Alternative audio processing (if pyaudio fails)
+soundfile==0.12.1
+librosa==0.10.1
+
+# Text processing
+nltk==3.8.1
+pandas==2.0.3
+numpy==1.24.3
+
+# HTTP requests
+requests==2.31.0
+
+# File handling
+python-multipart==0.0.6
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Optional: For better performance
+gunicorn==21.2.0
+
+# Development and testing
+pytest==7.4.2
