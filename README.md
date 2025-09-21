@@ -1,362 +1,306 @@
-# FlavorCraft - Multimodal Recipe Generator
+# FlavorCraft - LLM-Powered Multimodal Recipe Generator
 
-A sophisticated AI-powered application that generates detailed recipes from multiple input types: text descriptions, dish images, and voice instructions.
+FlavorCraft is an AI-powered application that generates personalized recipes using three types of input: text (ingredients lists), images (dish photos), and audio (voice instructions). The system uses Google's Gemini AI to create comprehensive, detailed recipes tailored to your specific inputs.
 
-## 🌟 Features
+## Features
 
-### Multimodal Input Processing
-- **Text Analysis**: Extract ingredients, cooking methods, and cuisine type from recipe text
-- **Image Classification**: Identify dishes and cuisine from food photos using deep learning
-- **Audio Transcription**: Convert voice instructions to text and extract cooking keywords
+### 🧠 LLM Integration
+- **Google Gemini AI**: Advanced language model generates detailed, personalized recipes
+- **Multimodal Processing**: Combines text, image, and audio inputs intelligently
+- **Context-Aware Generation**: Considers all inputs to create cohesive recipes
 
-### Comprehensive Recipe Generation
-- Detailed ingredient lists with quantities
-- Step-by-step cooking instructions
-- Cuisine classification and cultural context
-- Cooking time estimates and difficulty levels
-- Professional cooking tips and techniques
-- Nutritional insights and recommendations
+### 📝 Text Input Processing
+- **Ingredients Lists**: Parse structured ingredient lists with quantities
+- **Recipe Descriptions**: Understand cooking preferences and dietary requirements
+- **Cuisine Detection**: Automatically identify cuisine types from text
 
-### Modern User Interface
-- Beautiful, responsive React frontend
-- Intuitive tab-based input system
-- Real-time audio recording with visual feedback
-- Drag-and-drop image uploads
-- Professional recipe presentation
+### 📸 Image Analysis
+- **Dish Recognition**: Identify food dishes from uploaded photos
+- **Cuisine Classification**: Determine cuisine type from visual cues
+- **Confidence Scoring**: Assess accuracy of image classification
 
-## 🏗️ Architecture
+### 🎤 Audio Processing
+- **Speech Recognition**: Convert voice instructions to text
+- **Cooking Method Detection**: Extract cooking techniques from audio
+- **Natural Language Processing**: Understand spoken cooking preferences
 
-```
-FlavorCraft/
-├── Frontend (React)
-│   ├── src/
-│   │   ├── App.js          # Main React component
-│   │   ├── App.css         # Styling
-│   │   └── index.js        # Entry point
-│   └── public/
-│
-├── Backend (Python/Flask)
-│   ├── app.py              # Main Flask application
-│   ├── audio_model.py      # Speech-to-text processing
-│   ├── image_model.py      # Image classification
-│   ├── text_model.py       # Text analysis and NLP
-│   ├── requirements.txt    # Python dependencies
-│   └── setup.py           # Automated setup script
-│
-└── Configuration
-    ├── .env               # Environment variables
-    └── README.md         # This file
-```
+### 🍳 Recipe Generation
+- **Complete Recipes**: Generate ingredients, instructions, timing, and tips
+- **Nutritional Information**: Highlight key nutritional benefits
+- **Recipe Variations**: Suggest alternative ingredients and methods
+- **Difficulty Assessment**: Automatic difficulty level assignment
 
-## 🚀 Quick Start
+## Technology Stack
+
+### Backend
+- **Flask**: Web framework for API endpoints
+- **Google Generative AI**: Gemini 1.5 Flash model for recipe generation
+- **TensorFlow**: Image classification and processing
+- **SpeechRecognition**: Audio transcription
+- **NLTK**: Natural language processing
+- **PyDub**: Audio processing
+
+### Frontend
+- **React**: Modern web interface
+- **Tailwind CSS**: Responsive styling (via CDN)
+- **Lucide React**: Icon components
+- **Web Audio API**: Audio recording functionality
+
+## Installation
 
 ### Prerequisites
-- **Python 3.8+**
-- **Node.js 14+**
-- **npm or yarn**
+- Python 3.8 or higher
+- Node.js 16+ (for React frontend)
+- Git
 
-### Automated Setup
+### Quick Setup
 
 1. **Clone the repository**
 ```bash
-git clone <your-repository>
+git clone <repository-url>
 cd flavorcraft
 ```
 
-2. **Run the automated setup**
+2. **Run the setup script**
 ```bash
 python setup.py
 ```
 
-This will:
+This will automatically:
 - Install system dependencies
-- Install Python packages
-- Download required AI models
-- Set up NLTK data
-- Create necessary directories
-- Configure environment variables
-
-3. **Start the backend server**
-```bash
-python app.py
-```
-
-4. **Start the React frontend**
-```bash
-npm start
-```
-
-Visit `http://localhost:3000` to use the application!
+- Set up Python environment
+- Configure Google AI API
+- Download required models
+- Set up frontend dependencies
 
 ### Manual Setup
 
-If you prefer manual installation:
-
-#### Backend Setup
-
-1. **Create Python virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-2. **Install Python dependencies**
+1. **Install Python dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Install system dependencies**
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install portaudio19-dev ffmpeg python3-dev build-essential
-```
-
-**macOS:**
-```bash
-brew install portaudio ffmpeg
-```
-
-**Windows:**
-- Install Visual Studio Build Tools
-- Install FFmpeg and add to PATH
-
-4. **Download NLTK data**
-```python
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-```
-
-5. **Start the Flask server**
-```bash
-python app.py
-```
-
-#### Frontend Setup
-
-1. **Install Node.js dependencies**
+2. **Install frontend dependencies**
 ```bash
 npm install
 ```
 
-2. **Install additional dependencies**
-```bash
-npm install lucide-react
+3. **Set up environment variables**
+Create a `.env` file with:
+```env
+GOOGLE_API_KEY=AIzaSyDDhOVdFG5tl29-v1gi7KUqul7iPAX8oqc
+FLASK_ENV=development
+PORT=5000
 ```
 
-3. **Start the React development server**
+## Usage
+
+### Starting the Application
+
+1. **Start the backend server**
+```bash
+python app.py
+```
+The API will run on `http://localhost:5007`
+
+2. **Start the frontend (in a new terminal)**
 ```bash
 npm start
 ```
+The web app will open on `http://localhost:3000`
 
-## 🔧 Configuration
+### Using FlavorCraft
+
+1. **Text Input**: Enter ingredients lists or describe what you want to cook
+2. **Image Upload**: Upload a photo of a dish you want to recreate
+3. **Voice Recording**: Record cooking instructions or preferences
+4. **Generate Recipe**: Click "Generate Recipe with AI" to create your personalized recipe
+
+### API Endpoints
+
+- `GET /` - Health check and system status
+- `POST /predict` - Main recipe generation endpoint
+- `POST /analyze-text` - Text-only analysis
+- `POST /analyze-image` - Image-only analysis
+- `POST /analyze-audio` - Audio-only analysis
+- `POST /generate-recipe-llm` - Direct LLM recipe generation
+
+## File Structure
+
+```
+flavorcraft/
+├── app.py                 # Main Flask application with LLM integration
+├── text_model.py          # Text processing and analysis
+├── image_model.py         # Image classification model
+├── audio_model.py         # Audio processing and transcription
+├── requirements.txt       # Python dependencies
+├── setup.py              # Installation script
+├── package.json          # React frontend dependencies
+├── App.js                # Main React component
+├── App.css               # Styling
+├── index.js              # React entry point
+├── .env                  # Environment configuration
+└── README.md             # This file
+```
+
+## Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
-
 ```env
-# Flask Configuration
-FLASK_APP=app.py
-FLASK_ENV=development
-DEBUG=True
-PORT=5000
+# Google AI Configuration
+GOOGLE_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
 
-# File Upload Configuration
+# Flask Configuration
+FLASK_ENV=development
+PORT=5000
+DEBUG=True
+
+# File Upload
 MAX_CONTENT_LENGTH=16777216  # 16MB
 UPLOAD_FOLDER=temp
 
-# Model Configuration
-USE_GPU=True
-MODEL_CACHE_DIR=models
-
-# API Configuration
-API_TIMEOUT=300
-MAX_WORKERS=4
+# Logging
+LOG_LEVEL=INFO
+LOG_FILE=logs/flavorcraft.log
 ```
 
 ### Model Configuration
 
-The application uses several AI models:
+The application supports multiple AI models:
+- **Primary**: Google Gemini 1.5 Flash (for recipe generation)
+- **Image**: ResNet50/VGG16 (for dish classification)
+- **Audio**: Google Speech Recognition + Sphinx (fallback)
+- **Text**: NLTK + custom processing
 
-- **Image Classification**: ResNet50/VGG16 (pre-trained on ImageNet)
-- **Speech Recognition**: Google Web Speech API with Sphinx fallback
-- **Text Processing**: NLTK with custom recipe analysis
+## Development
 
-## 📡 API Endpoints
+### Adding New Features
 
-### Main Endpoints
+1. **Backend Changes**: Modify `app.py` and related model files
+2. **Frontend Changes**: Update `App.js` and components
+3. **New Endpoints**: Add routes in `app.py`
+4. **Model Updates**: Enhance processing in model files
 
-- `POST /predict` - Multimodal recipe generation
-- `POST /analyze-text` - Text-only analysis
-- `POST /analyze-image` - Image-only analysis  
-- `POST /analyze-audio` - Audio-only analysis
-- `GET /` - Health check
-
-### Request Format
-
-**Multimodal Request:**
-```javascript
-const formData = new FormData();
-formData.append('text', 'Recipe description...');
-formData.append('image', imageFile);
-formData.append('audio', audioBlob, 'voice.wav');
-
-fetch('http://localhost:5000/predict', {
-  method: 'POST',
-  body: formData
-});
-```
-
-### Response Format
-
-```json
-{
-  "success": true,
-  "recipe": {
-    "name": "Butter Chicken Masala",
-    "cuisine": "Indian",
-    "difficulty": "Medium",
-    "servings": 4,
-    "cook_time": "45 minutes",
-    "ingredients": ["1 lb chicken", "1 cup cream", ...],
-    "instructions": ["Heat oil...", "Add chicken...", ...],
-    "tags": ["spicy", "creamy", "indian"],
-    "tips": ["Marinate for better flavor", ...]
-  },
-  "analysis_results": {
-    "text": {...},
-    "image": {...},
-    "audio": {...}
-  }
-}
-```
-
-## 🎯 Usage Examples
-
-### Text Input
-```
-Butter Chicken Recipe
-
-Ingredients:
-- 2 lbs chicken breast, cubed
-- 1 cup heavy cream
-- 2 tbsp butter
-- 1 onion, chopped
-- 2 tsp garam masala
-
-Instructions:
-1. Marinate chicken for 30 minutes
-2. Cook chicken until golden
-3. Sauté onions until soft
-4. Add spices and simmer
-```
-
-### Image Input
-- Upload photos of completed dishes
-- Support for: JPG, PNG, GIF, WebP
-- Automatic cuisine classification
-- Ingredient suggestion based on visual analysis
-
-### Audio Input
-- Record cooking instructions or descriptions
-- Automatic transcription to text
-- Keyword extraction for cooking methods
-- Support for multiple audio formats
-
-## 🧪 Testing
-
-Run the test suite:
+### Testing
 
 ```bash
-# Backend tests
-python -m pytest
+# Test backend
+python -m pytest tests/
 
-# Frontend tests
+# Test API endpoints
+curl http://localhost:5000/
+
+# Test frontend
 npm test
 ```
 
-## 🔍 Troubleshooting
+### Debugging
+
+- Backend logs: Check console output when running `python app.py`
+- Frontend logs: Open browser developer tools
+- API testing: Use tools like Postman or curl
+- Model issues: Check individual model imports in Python
+
+## Troubleshooting
 
 ### Common Issues
 
-**1. Audio recording not working**
-- Check browser microphone permissions
-- Ensure HTTPS in production (required for microphone access)
-- Verify pyaudio installation
+1. **Google AI API Error**
+   - Verify API key is correct
+   - Check internet connection
+   - Ensure API quotas are not exceeded
 
-**2. Image classification fails**
-- Ensure TensorFlow is properly installed
-- Check if GPU drivers are up to date (for GPU acceleration)
-- Verify image file formats are supported
+2. **Audio Recording Not Working**
+   - Check microphone permissions
+   - Verify HTTPS connection (required for audio)
+   - Install audio dependencies: `pip install pyaudio`
 
-**3. Backend connection errors**
-- Ensure Flask server is running on port 5000
-- Check CORS configuration
-- Verify firewall settings
+3. **Image Classification Fails**
+   - Install TensorFlow: `pip install tensorflow`
+   - Verify image file format (JPG, PNG supported)
+   - Check image file size (max 16MB)
 
-**4. Model loading errors**
-- Run `python setup.py` to download required models
-- Check internet connection for model downloads
-- Ensure sufficient disk space
+4. **Speech Recognition Issues**
+   - Install system dependencies: `sudo apt-get install portaudio19-dev`
+   - Try different audio formats
+   - Check microphone input levels
 
-### Performance Optimization
+5. **Frontend Build Errors**
+   - Ensure Node.js 16+ is installed
+   - Clear npm cache: `npm cache clean --force`
+   - Reinstall dependencies: `rm -rf node_modules && npm install`
 
-**For faster image processing:**
-- Enable GPU acceleration (install tensorflow-gpu)
-- Use SSD storage for model caching
-- Optimize batch processing for multiple images
+### Error Messages
 
-**For better audio quality:**
-- Use higher quality audio input devices
-- Ensure quiet environment for recording
-- Consider noise cancellation preprocessing
+- **"LLM model not available"**: Check Google AI API key configuration
+- **"Audio model not available"**: Install speech recognition dependencies
+- **"Image model not available"**: Install TensorFlow and related packages
+- **"CORS error"**: Ensure backend is running on port 5000
 
-## 🤝 Contributing
+## API Key Security
+
+The Google AI API key is currently hardcoded for development purposes. For production:
+
+1. Store in environment variables
+2. Use secure configuration management
+3. Implement rate limiting
+4. Add API key rotation
+
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-### Development Guidelines
+### Development Setup
 
-- Follow PEP 8 for Python code
-- Use ESLint for JavaScript/React code
-- Add tests for new features
-- Update documentation for API changes
-- Use meaningful commit messages
+```bash
+# Clone your fork
+git clone <your-fork-url>
+cd flavorcraft
 
-## 📄 License
+# Install dependencies
+python setup.py
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Create development branch
+git checkout -b feature/your-feature-name
 
-## 🙏 Acknowledgments
+# Make changes and test
+python app.py  # Backend
+npm start      # Frontend
 
-- **TensorFlow** for deep learning models
-- **React** for the beautiful frontend
-- **Flask** for the robust backend
-- **NLTK** for natural language processing
-- **SpeechRecognition** for audio processing
-- **OpenAI** for inspiration and AI guidance
+# Commit and push
+git add .
+git commit -m "Add your feature"
+git push origin feature/your-feature-name
+```
 
-## 📞 Support
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
 
 For issues and questions:
-- Create an issue on GitHub
-- Check the troubleshooting section
-- Review the API documentation
+1. Check this README
+2. Review error logs
+3. Test individual components
+4. Check API quotas and keys
 
-## 🚀 Future Enhancements
+## Acknowledgments
 
-- [ ] Support for more languages and cuisines
-- [ ] Recipe rating and review system
-- [ ] Meal planning and shopping list generation
-- [ ] Integration with nutrition APIs
-- [ ] Mobile app development
-- [ ] Social sharing features
-- [ ] Advanced dietary restriction handling
-- [ ] Video input support
-- [ ] Real-time collaboration features
+- Google Generative AI for LLM capabilities
+- TensorFlow team for image processing models
+- React community for frontend framework
+- Open source contributors for various libraries
+
+## Version History
+
+- **v1.0**: Initial release with LLM integration
+- **v1.1**: Enhanced multimodal processing
+- **v1.2**: Improved error handling and fallbacks
+- **Current**: Production-ready with comprehensive features
