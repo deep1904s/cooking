@@ -14,10 +14,10 @@ def test_dataset_path():
     
     # Test the exact path you mentioned
     dataset_paths = [
-        "data/archive (14)/images",
-        "data/archive/images", 
-        "../data/archive (14)/images",
-        "./data/archive (14)/images"
+        "data/data1/images",
+        "data/data1/images", 
+        "../data/data1/images",
+        "./data/data1/images"
     ]
     
     for path in dataset_paths:
@@ -122,7 +122,7 @@ def main():
     
     # Test with sample image (if available)
     # You can provide a path to test image here
-    test_image_path = "data/archive (14)/images/baklava/50627.jpg"
+    test_image_path = "data/data1/images/baklava/50627.jpg"
     test_image_classification(model, test_image_path)
     
     print("\n" + "="*40)

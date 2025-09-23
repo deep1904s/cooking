@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FlavorCraft Image Classification Model - FIXED VERSION
-Properly loads dataset and classifies food images
+FlavorCraft Image Classification Model - UPDATED VERSION
+Properly loads custom trained H5 model and PKL files for food classification
 """
 
 import tensorflow as tf
@@ -14,6 +14,7 @@ import glob
 from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 import json
+import pickle
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,17 +22,19 @@ logger = logging.getLogger(__name__)
 
 class ImageModel:
     def __init__(self):
-        """Initialize the image classification model with fixed dataset loading"""
+        """Initialize the image classification model with custom H5 model and PKL files"""
         self.model = None
+        self.label_map = None
+        self.class_names = None
         self.label_encoder = None
         
-        # Try multiple dataset paths (FIXED)
+        # Try multiple dataset paths (FIXED for cooking project structure)
         possible_paths = [
-            "data/data1/images",
-            "../data/data1/images",
-            "./data/data1/images",
-            "data/data1/images",
-            "../data/data1/images"
+            "data/data1/images",           # From root directory
+            "../data/data1/images",        # From backend directory
+            "../../data/data1/images",     # From backend/models directory
+            "./data/data1/images",         # Current directory
+            "../../../data/data1/images"   # Deep nested fallback
         ]
         
         self.dataset_path = None
@@ -47,18 +50,147 @@ class ImageModel:
             logger.warning("⚠️ No dataset found - using fallback")
             self.dataset_path = "data/archive (14)/images"
         
-        # Load food categories from dataset
+        # Load the custom trained model and label mappings
+        self.load_custom_model()
+        
+        # Load food categories and cuisine mapping
         self.food_categories = self.load_food_categories_from_dataset()
         self.cuisine_mapping = self.load_cuisine_mapping()
         
-        # Load the classification model
-        self.load_model()
-        
         logger.info("✅ ImageModel initialization complete")
     
-    def load_food_categories_from_dataset(self):
-        """FIXED: Load food categories from actual dataset directory structure"""
+    def load_custom_model(self):
+        """Load custom trained H5 model and PKL files"""
         try:
+            logger.info("🤖 Loading custom trained food classification model...")
+            
+            # Model and label map paths (updated for cooking project structure)
+            model_paths = [
+                'models/food_classifier.h5',           # From root directory
+                '../models/food_classifier.h5',        # From backend directory  
+                '../../models/food_classifier.h5',     # From backend/models directory
+                './models/food_classifier.h5',         # Current directory
+                '../../../models/food_classifier.h5'   # Deep nested fallback
+            ]
+            
+            label_map_paths = [
+                'models/label_map.pkl',                 # From root directory
+                '../models/label_map.pkl',              # From backend directory
+                '../../models/label_map.pkl',           # From backend/models directory  
+                './models/label_map.pkl',               # Current directory
+                '../../../models/label_map.pkl'        # Deep nested fallback
+            ]
+            
+            # Try to load custom model
+            model_loaded = False
+            for model_path in model_paths:
+                if os.path.exists(model_path):
+                    try:
+                        logger.info(f"Loading custom H5 model from {model_path}...")
+                        self.model = tf.keras.models.load_model(model_path)
+                        logger.info("✅ Custom H5 model loaded successfully!")
+                        model_loaded = True
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to load H5 model from {model_path}: {e}")
+                        continue
+            
+            # Try to load label map
+            label_map_loaded = False
+            for label_path in label_map_paths:
+                if os.path.exists(label_path):
+                    try:
+                        logger.info(f"Loading label map from {label_path}...")
+                        with open(label_path, 'rb') as f:
+                            self.label_map = pickle.load(f)
+                        
+                        # Create reverse mapping (index -> class name)
+                        self.class_names = {v: k for k, v in self.label_map.items()}
+                        logger.info(f"✅ Label map loaded with {len(self.label_map)} classes")
+                        logger.info(f"📋 Sample classes: {list(self.label_map.keys())[:5]}")
+                        label_map_loaded = True
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to load label map from {label_path}: {e}")
+                        continue
+            
+            if model_loaded and label_map_loaded:
+                logger.info("✅ Custom model and label map loaded successfully!")
+                return
+            elif model_loaded and not label_map_loaded:
+                logger.warning("⚠️ Model loaded but no label map found. Creating fallback mapping.")
+                self.create_fallback_label_map()
+                return
+            else:
+                logger.warning("⚠️ Custom model not found, falling back to pre-trained model...")
+                self.load_pretrained_model()
+                
+        except Exception as e:
+            logger.error(f"❌ Error loading custom model: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            self.load_pretrained_model()
+    
+    def create_fallback_label_map(self):
+        """Create fallback label mapping when PKL file is not available"""
+        try:
+            if self.dataset_path and Path(self.dataset_path).exists():
+                dataset_path = Path(self.dataset_path)
+                food_folders = []
+                for item in dataset_path.iterdir():
+                    if item.is_dir():
+                        food_folders.append(item.name)
+                
+                food_folders.sort()  # Ensure consistent ordering
+                self.label_map = {name: idx for idx, name in enumerate(food_folders)}
+                self.class_names = {idx: name for idx, name in enumerate(food_folders)}
+                logger.info(f"✅ Created fallback label map with {len(self.label_map)} classes")
+            else:
+                # Ultimate fallback with common food categories
+                fallback_classes = [
+                    'burger', 'pizza', 'pasta', 'sushi', 'taco', 'curry', 'salad',
+                    'sandwich', 'soup', 'rice', 'noodles', 'chicken', 'fish'
+                ]
+                self.label_map = {name: idx for idx, name in enumerate(fallback_classes)}
+                self.class_names = {idx: name for idx, name in enumerate(fallback_classes)}
+                logger.info("✅ Created ultimate fallback label map")
+                
+        except Exception as e:
+            logger.error(f"❌ Error creating fallback label map: {e}")
+            self.label_map = {}
+            self.class_names = {}
+    
+    def load_pretrained_model(self):
+        """Fallback to pre-trained ResNet50 model"""
+        try:
+            logger.info("Loading pre-trained ResNet50 model as fallback...")
+            from tensorflow.keras.applications import ResNet50
+            from tensorflow.keras.applications.resnet50 import preprocess_input, decode_predictions
+            
+            self.model = ResNet50(weights='imagenet')
+            self.preprocess_input = preprocess_input
+            self.decode_predictions = decode_predictions
+            self.use_imagenet = True
+            logger.info("✅ ResNet50 fallback model loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Error loading fallback model: {str(e)}")
+            self.model = None
+    
+    def load_food_categories_from_dataset(self):
+        """Load food categories from actual dataset directory structure"""
+        try:
+            # If we have a custom label map, use it
+            if self.label_map:
+                food_to_cuisine = {}
+                for food_name in self.label_map.keys():
+                    cuisine = self.predict_cuisine_from_name(food_name)
+                    food_to_cuisine[food_name.lower()] = cuisine
+                
+                logger.info(f"✅ Created cuisine mapping from custom label map: {len(food_to_cuisine)} foods")
+                return food_to_cuisine
+            
+            # Otherwise, scan dataset directory
             dataset_path = Path(self.dataset_path)
             logger.info(f"🔍 Scanning dataset path: {dataset_path.absolute()}")
             
@@ -76,10 +208,6 @@ class ImageModel:
                 logger.warning("⚠️ No food categories found in dataset. Using fallback.")
                 return self.get_fallback_categories()
             
-            # Log found categories
-            logger.info(f"✅ Found {len(food_folders)} food categories in dataset")
-            logger.info(f"📋 Sample categories: {food_folders[:10]}")
-            
             # Create food to cuisine mapping for dataset categories
             food_to_cuisine = {}
             for food in food_folders:
@@ -91,8 +219,6 @@ class ImageModel:
             
         except Exception as e:
             logger.error(f"❌ Error loading dataset categories: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
             return self.get_fallback_categories()
     
     def get_fallback_categories(self):
@@ -123,7 +249,7 @@ class ImageModel:
         }
     
     def predict_cuisine_from_name(self, food_name):
-        """FIXED: Predict cuisine based on food name patterns"""
+        """Predict cuisine based on food name patterns"""
         food_lower = food_name.lower().replace('_', ' ')
         
         # Indian cuisine patterns
@@ -218,48 +344,8 @@ class ImageModel:
             }
         }
     
-    def load_model(self):
-        """FIXED: Load pre-trained image classification model"""
-        try:
-            logger.info("🤖 Loading image classification model...")
-            
-            # Try to load custom trained model if available
-            custom_model_paths = [
-                'models/food_classifier.h5',
-                '../models/food_classifier.h5',
-                './models/food_classifier.h5',
-                'backend/models/food_classifier.h5'
-            ]
-            
-            for model_path in custom_model_paths:
-                if os.path.exists(model_path):
-                    try:
-                        logger.info(f"Loading custom model from {model_path}...")
-                        self.model = tf.keras.models.load_model(model_path)
-                        logger.info("✅ Custom food classifier loaded successfully")
-                        return
-                    except Exception as e:
-                        logger.warning(f"Failed to load custom model: {e}")
-                        continue
-            
-            # Fallback to pre-trained ResNet50 model
-            logger.info("Loading pre-trained ResNet50 model...")
-            from tensorflow.keras.applications import ResNet50
-            from tensorflow.keras.applications.resnet50 import preprocess_input, decode_predictions
-            
-            self.model = ResNet50(weights='imagenet')
-            self.preprocess_input = preprocess_input
-            self.decode_predictions = decode_predictions
-            logger.info("✅ ResNet50 model loaded successfully")
-            
-        except Exception as e:
-            logger.error(f"❌ Error loading model: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            self.model = None
-    
     def preprocess_image(self, image_file):
-        """FIXED: Preprocess image for model prediction"""
+        """Preprocess image for model prediction (optimized for custom MobileNetV2 model)"""
         try:
             logger.info("📸 Preprocessing image...")
             
@@ -288,7 +374,7 @@ class ImageModel:
                 img = img.convert('RGB')
                 logger.info("📸 Converted to RGB")
             
-            # Resize to model input size (224x224 for ResNet50)
+            # Resize to model input size (224x224 for MobileNetV2/ResNet50)
             img = img.resize((224, 224))
             logger.info("📸 Resized to 224x224")
             
@@ -297,14 +383,14 @@ class ImageModel:
             img_array = np.expand_dims(img_array, axis=0)
             
             # Apply preprocessing based on model type
-            if hasattr(self, 'preprocess_input'):
+            if hasattr(self, 'use_imagenet') and self.use_imagenet:
                 # ResNet50 preprocessing
                 img_array = self.preprocess_input(img_array)
                 logger.info("📸 Applied ResNet50 preprocessing")
             else:
-                # Standard normalization
+                # Custom model preprocessing (same as training: rescale 1./255)
                 img_array = img_array / 255.0
-                logger.info("📸 Applied standard normalization")
+                logger.info("📸 Applied custom model preprocessing (rescale 1./255)")
             
             logger.info(f"✅ Image preprocessing completed. Shape: {img_array.shape}")
             return img_array
@@ -316,7 +402,7 @@ class ImageModel:
             return None
     
     def analyze_image_for_recipe(self, image_file):
-        """FIXED: Complete image analysis pipeline for recipe generation"""
+        """Complete image analysis pipeline for recipe generation using custom trained model"""
         try:
             logger.info("🚀 Starting image analysis...")
             
@@ -350,8 +436,8 @@ class ImageModel:
             logger.info(f"✅ Prediction completed: shape {predictions.shape}")
             
             # Process predictions based on model type
-            if hasattr(self, 'decode_predictions'):
-                # Using ImageNet ResNet50
+            if hasattr(self, 'use_imagenet') and self.use_imagenet:
+                # Using ImageNet ResNet50 (fallback)
                 decoded_predictions = self.decode_predictions(predictions, top=5)[0]
                 
                 # Process predictions to find food-related items
@@ -368,18 +454,13 @@ class ImageModel:
                         'description': pred[1]
                     })
                 
-                # Get best prediction
+                # Get best prediction and map it
                 best_prediction = food_predictions[0]
                 best_class = best_prediction['class']
-                
-                # Try to map to known food categories
                 mapped_food = self.map_imagenet_to_food(best_class)
-                
-                # Determine cuisine
                 cuisine = self.determine_cuisine_from_prediction(mapped_food)
                 
-                logger.info(f"✅ Best prediction: {mapped_food} (confidence: {best_prediction['confidence']:.3f})")
-                logger.info(f"🌍 Determined cuisine: {cuisine}")
+                logger.info(f"✅ ImageNet prediction: {mapped_food} (confidence: {best_prediction['confidence']:.3f})")
                 
                 return {
                     'success': True,
@@ -387,37 +468,57 @@ class ImageModel:
                     'food_class': mapped_food,
                     'cuisine': cuisine,
                     'confidence': best_prediction['confidence'],
-                    'model_used': 'ResNet50-ImageNet',
+                    'model_used': 'ResNet50-ImageNet-Fallback',
                     'raw_prediction': best_prediction['description'],
                     'error': None
                 }
             
             else:
-                # Custom model prediction logic
-                logger.warning("⚠️ Custom model prediction not fully implemented")
+                # Custom trained model prediction
+                logger.info("🎯 Using custom trained food classifier...")
                 
-                # Get class with highest confidence
-                predicted_class_idx = np.argmax(predictions[0])
-                confidence = float(predictions[0][predicted_class_idx])
+                # Get top predictions
+                top_indices = np.argsort(predictions[0])[::-1][:5]  # Top 5 predictions
+                food_predictions = []
                 
-                # Map to food categories if possible
-                food_categories_list = list(self.food_categories.keys())
-                if predicted_class_idx < len(food_categories_list):
-                    predicted_food = food_categories_list[predicted_class_idx]
-                    cuisine = self.food_categories.get(predicted_food, 'International')
-                else:
-                    predicted_food = 'Unknown'
-                    cuisine = 'International'
+                for i, idx in enumerate(top_indices):
+                    confidence = float(predictions[0][idx])
+                    
+                    # Get class name from label map
+                    if self.class_names and idx in self.class_names:
+                        class_name = self.class_names[idx]
+                    else:
+                        class_name = f"class_{idx}"
+                    
+                    food_predictions.append({
+                        'class_id': int(idx),
+                        'class': class_name,
+                        'confidence': confidence,
+                        'description': class_name.replace('_', ' ').title()
+                    })
+                    
+                    if i == 0:  # Log best prediction
+                        logger.info(f"🎯 Best prediction: {class_name} (confidence: {confidence:.3f})")
                 
-                logger.info(f"✅ Custom model prediction: {predicted_food} (confidence: {confidence:.3f})")
+                # Get best prediction details
+                best_prediction = food_predictions[0]
+                predicted_food = best_prediction['class']
+                
+                # Determine cuisine
+                cuisine = self.determine_cuisine_from_prediction(predicted_food)
+                
+                logger.info(f"✅ Custom model prediction: {predicted_food}")
+                logger.info(f"🌍 Determined cuisine: {cuisine}")
                 
                 return {
                     'success': True,
-                    'predictions': [{'class': predicted_food, 'confidence': confidence}],
+                    'predictions': food_predictions,
                     'food_class': predicted_food,
                     'cuisine': cuisine,
-                    'confidence': confidence,
-                    'model_used': 'Custom-Food-Classifier',
+                    'confidence': best_prediction['confidence'],
+                    'model_used': 'Custom-MobileNetV2-Food-Classifier',
+                    'raw_prediction': best_prediction['description'],
+                    'total_classes': len(self.class_names) if self.class_names else 'Unknown',
                     'error': None
                 }
             
@@ -435,7 +536,7 @@ class ImageModel:
             }
     
     def map_imagenet_to_food(self, imagenet_class):
-        """FIXED: Map ImageNet predictions to our food categories"""
+        """Map ImageNet predictions to our food categories (for fallback model)"""
         
         # Create mapping from ImageNet classes to food names
         imagenet_food_mapping = {
@@ -506,7 +607,7 @@ class ImageModel:
         return cleaned_class
     
     def determine_cuisine_from_prediction(self, food_name):
-        """FIXED: Determine cuisine from predicted food name"""
+        """Determine cuisine from predicted food name"""
         
         # Check if we have this food in our categories
         food_lower = food_name.lower()
@@ -520,6 +621,26 @@ class ImageModel:
         cuisine = self.predict_cuisine_from_name(food_name)
         logger.info(f"🌍 Predicted cuisine from name: {food_name} -> {cuisine}")
         return cuisine
+    
+    def get_model_info(self):
+        """Get information about the loaded model"""
+        info = {
+            'model_loaded': self.model is not None,
+            'model_type': 'Unknown',
+            'total_classes': 0,
+            'sample_classes': [],
+            'has_label_map': self.label_map is not None
+        }
+        
+        if hasattr(self, 'use_imagenet') and self.use_imagenet:
+            info['model_type'] = 'ResNet50-ImageNet-Fallback'
+            info['total_classes'] = 1000
+        elif self.class_names:
+            info['model_type'] = 'Custom-MobileNetV2-Food-Classifier'
+            info['total_classes'] = len(self.class_names)
+            info['sample_classes'] = list(self.class_names.values())[:10]
+        
+        return info
 
 # Test function for standalone usage
 if __name__ == "__main__":
@@ -530,6 +651,9 @@ if __name__ == "__main__":
         logger.info("✅ ImageModel initialized successfully")
         
         # Log model info
+        model_info = model.get_model_info()
+        logger.info(f"📊 Model Info: {model_info}")
+        
         if hasattr(model, 'food_categories'):
             logger.info(f"📊 Food categories loaded: {len(model.food_categories)}")
             sample_categories = list(model.food_categories.keys())[:5]
