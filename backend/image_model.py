@@ -27,11 +27,11 @@ class ImageModel:
         
         # Try multiple dataset paths (FIXED)
         possible_paths = [
-            "data/archive (14)/images",
-            "../data/archive (14)/images",
-            "./data/archive (14)/images",
-            "data/archive/images",
-            "../data/archive/images"
+            "data/data1/images",
+            "../data/data1/images",
+            "./data/data1/images",
+            "data/data1/images",
+            "../data/data1/images"
         ]
         
         self.dataset_path = None
