@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 FlavorCraft Development Startup Script
-Runs both backend and frontend with a single command
+Enhanced for backend folder structure and dataset integration
 """
 
 import subprocess
@@ -9,278 +9,446 @@ import os
 import sys
 import time
 import threading
+import signal
 from pathlib import Path
 import json
 
-def check_dependencies():
-    """Check if required dependencies are installed"""
-    print("Checking dependencies...")
+class FlavorCraftDev:
+    def __init__(self):
+        self.current_dir = Path(__file__).parent
+        self.backend_dir = self.current_dir / "backend"  # Add backend directory
+        self.processes = []
+        self.backend_process = None
+        self.frontend_process = None
+        
+    def check_system_requirements(self):
+        """Check system requirements for FlavorCraft"""
+        print("🔍 Checking system requirements...")
+        
+        # Check Python version
+        if sys.version_info < (3, 8):
+            print(f"❌ Python 3.8+ required, found {sys.version_info.major}.{sys.version_info.minor}")
+            return False
+        print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+        
+        return True
     
-    # Check Python dependencies
-    try:
-        import flask
-        import flask_cors
-        print("Flask dependencies found")
-    except ImportError:
-        print("Missing Flask dependencies. Run: pip install flask flask-cors")
-        return False
+    def check_project_structure(self):
+        """Check project structure and locate backend files"""
+        print("📁 Checking project structure...")
+        
+        # Check for backend folder structure
+        if self.backend_dir.exists():
+            print(f"✅ Backend folder found: {self.backend_dir}")
+            
+            # Check for app.py in backend folder
+            if (self.backend_dir / "app.py").exists():
+                print("✅ app.py found in backend folder")
+                return True
+            else:
+                print("❌ app.py not found in backend folder")
+                return False
+        
+        # Check for app.py in root
+        elif (self.current_dir / "app.py").exists():
+            print("✅ app.py found in root directory")
+            self.backend_dir = self.current_dir  # Use root as backend
+            return True
+        
+        else:
+            print("❌ app.py not found in backend/ or root directory")
+            print("📝 Expected structure:")
+            print("   FlavorCraft/")
+            print("   ├── backend/")
+            print("   │   ├── app.py")
+            print("   │   ├── image_model.py")
+            print("   │   └── audio_model.py")
+            print("   ├── src/ (React frontend)")
+            print("   └── start-dev.py")
+            return False
     
-    # Check if npm is available
-    try:
-        subprocess.run(['npm', '--version'], capture_output=True, check=True)
-        print("npm found")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("npm not found. Please install Node.js and npm")
-        return False
-    
-    return True
+    def check_dataset(self):
 
-def setup_frontend():
-    """Set up frontend files if needed"""
-    print("Setting up frontend...")
+        print("📊 Checking dataset availability...")
     
-    current_dir = Path(__file__).parent
+    # Updated dataset paths to match your structure
+        dataset_paths = [
+        # Your exact structure: cooking/data/archive (14)/images/
+            self.current_dir / "data" / "archive (14)" / "images",
+        
+        # Alternative locations (fallbacks)
+            self.current_dir / "data" / "archive" / "images",
+            self.backend_dir / "data" / "archive (14)" / "images",
+            self.backend_dir / "data" / "archive" / "images",
+            self.current_dir / "backend" / "data" / "archive (14)" / "images",
+            self.current_dir / "backend" / "data" / "archive" / "images"
+        ]
     
-    # Create directories
-    (current_dir / "src").mkdir(exist_ok=True)
-    (current_dir / "public").mkdir(exist_ok=True)
+        for dataset_path in dataset_paths:
+            if dataset_path.exists():
+                food_categories = [f.name for f in dataset_path.iterdir() if f.is_dir()]
+                total_images = 0
+            
+                for category_dir in dataset_path.iterdir():
+                    if category_dir.is_dir():
+                        image_files = []
+                    # Check for multiple image formats
+                        for ext in ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.webp']:
+                            image_files.extend(list(category_dir.glob(ext)))
+                            image_files.extend(list(category_dir.glob(ext.upper())))
+                        total_images += len(image_files)
+            
+                print(f"✅ Dataset found at: {dataset_path}")
+                print(f"📊 {len(food_categories)} food categories, ~{total_images} images")
+            
+            # Show sample categories
+                if food_categories:
+                    sample_categories = food_categories[:5]
+                    print(f"📋 Sample categories: {', '.join(sample_categories)}")
+                    if len(food_categories) > 5:
+                        print(f"    ... and {len(food_categories) - 5} more")
+            
+                return True
     
-    # Check if package.json exists
-    package_json_path = current_dir / "package.json"
+        print(f"⚠️  Dataset not found at any expected location")
+        print("📝 Expected dataset location:")
+        print("   cooking/data/archive (14)/images/")
+        print("   └── pizza/")
+        print("   └── burger/") 
+        print("   └── pasta/")
+        print("   └── ...")
+        print("🔄 FlavorCraft will use fallback categories if dataset is missing")
+        return False
     
-    if not package_json_path.exists():
-        print("Creating package.json...")
-        package_json = {
-            "name": "flavorcraft-frontend",
-            "version": "0.1.0",
-            "private": True,
-            "dependencies": {
-                "@testing-library/jest-dom": "^5.16.4",
-                "@testing-library/react": "^13.3.0",
-                "@testing-library/user-event": "^13.5.0",
-                "lucide-react": "^0.263.1",
-                "react": "^18.2.0",
-                "react-dom": "^18.2.0",
-                "react-scripts": "5.0.1",
-                "web-vitals": "^2.1.4"
-            },
-            "scripts": {
-                "start": "react-scripts start",
-                "build": "react-scripts build",
-                "test": "react-scripts test",
-                "eject": "react-scripts eject"
-            },
-            "eslintConfig": {
-                "extends": ["react-app", "react-app/jest"]
-            },
-            "browserslist": {
-                "production": [">0.2%", "not dead", "not op_mini all"],
-                "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
-            },
-            "proxy": "http://localhost:5007"
+    def check_dependencies(self):
+        """Check Python dependencies"""
+        print("🔍 Checking Python dependencies...")
+        
+        required_packages = {
+            'flask': 'Flask web framework',
+            'flask_cors': 'CORS support',
+            'tensorflow': 'Deep learning framework',
+            'PIL': 'Image processing',
+            'numpy': 'Numerical computing',
+            'google.generativeai': 'Gemini AI'
         }
         
-        with open(package_json_path, 'w') as f:
-            json.dump(package_json, f, indent=2)
-        print("Created package.json")
-    
-    # Create public/index.html
-    public_index = current_dir / "public" / "index.html"
-    if not public_index.exists():
-        print("Creating index.html...")
-        html_content = '''<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="FlavorCraft - AI-Powered Multimodal Recipe Generator" />
-    <title>FlavorCraft - AI Recipe Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
-</html>'''
-        with open(public_index, 'w') as f:
-            f.write(html_content)
-        print("Created public/index.html")
-    
-    # Create src/index.js if it doesn't exist
-    src_index = current_dir / "src" / "index.js"
-    if not src_index.exists() and not (current_dir / "App.js").exists():
-        print("Creating src/index.js...")
-        js_content = '''import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);'''
-        with open(src_index, 'w') as f:
-            f.write(js_content)
-        print("Created src/index.js")
-    
-    # Create src/index.css
-    src_css = current_dir / "src" / "index.css"
-    if not src_css.exists() and not (current_dir / "index.css").exists():
-        print("Creating src/index.css...")
-        css_content = '''body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}'''
-        with open(src_css, 'w') as f:
-            f.write(css_content)
-        print("Created src/index.css")
-    
-    # Check for App.js in root or src
-    app_js_root = current_dir / "App.js"
-    app_js_src = current_dir / "src" / "App.js"
-    
-    if app_js_root.exists() and not app_js_src.exists():
-        print("Moving App.js to src/ directory...")
-        app_js_root.rename(app_js_src)
-    
-    # Check for other files that might need to be moved to src/
-    files_to_move = ["App.css", "index.css"]
-    for file_name in files_to_move:
-        root_file = current_dir / file_name
-        src_file = current_dir / "src" / file_name
-        if root_file.exists() and not src_file.exists():
-            print(f"Moving {file_name} to src/ directory...")
-            root_file.rename(src_file)
-    
-    print("Frontend setup complete")
-
-def run_backend():
-    """Run the Flask backend server"""
-    print("Starting Flask backend on http://localhost:5007")
-    
-    current_dir = Path(__file__).parent
-    
-    # Look for app.py in current directory
-    app_py_path = current_dir / "app.py"
-    if not app_py_path.exists():
-        print("app.py not found in current directory!")
-        return
-    
-    # Start Flask app
-    env = os.environ.copy()
-    env['FLASK_APP'] = 'app.py'
-    env['FLASK_ENV'] = 'development'
-    env['FLASK_DEBUG'] = '1'
-    env['PORT'] = '5007'
-    env['PYTHONPATH'] = str(current_dir)
-    
-    try:
-        subprocess.run([
-            sys.executable, str(app_py_path)
-        ], env=env, cwd=current_dir)
-    except KeyboardInterrupt:
-        print("\nBackend stopped")
-
-def run_frontend():
-    """Run the React frontend server"""
-    print("Starting React frontend on http://localhost:3000")
-    
-    current_dir = Path(__file__).parent
-    
-    try:
-        # Change to current directory
-        os.chdir(current_dir)
+        missing_packages = []
         
-        # Install dependencies if node_modules doesn't exist
-        if not os.path.exists('node_modules'):
-            print("Installing npm dependencies...")
-            subprocess.run(['npm', 'install'], check=True)
+        for package, description in required_packages.items():
+            try:
+                __import__(package)
+                print(f"  ✅ {package} - {description}")
+            except ImportError:
+                print(f"  ❌ {package} - {description}")
+                missing_packages.append(package)
         
-        # Start React development server
-        subprocess.run(['npm', 'start'])
-    except subprocess.CalledProcessError as e:
-        print(f"Error starting React app: {e}")
-        print("Make sure Node.js and npm are installed.")
-    except KeyboardInterrupt:
-        print("\nFrontend stopped")
-
-def install_frontend_deps():
-    """Install frontend dependencies"""
-    print("Installing frontend dependencies...")
-    
-    current_dir = Path(__file__).parent
-    os.chdir(current_dir)
-    
-    try:
-        if os.path.exists('package.json') and not os.path.exists('node_modules'):
-            subprocess.run(['npm', 'install'], check=True)
-            print("Frontend dependencies installed")
-        else:
-            print("Dependencies already installed or package.json missing")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to install frontend dependencies: {e}")
-
-def main():
-    """Main function to start both servers"""
-    print("Starting FlavorCraft Development Environment")
-    print("=" * 50)
-    
-    # Check dependencies
-    if not check_dependencies():
-        print("Please install missing dependencies and try again.")
-        return
-    
-    # Setup frontend
-    setup_frontend()
-    
-    # Install frontend dependencies
-    install_frontend_deps()
-    
-    print("\nStarting services...")
-    print("Backend: http://localhost:5007")
-    print("Frontend: http://localhost:3000")
-    print("\nPress Ctrl+C to stop both services\n")
-    
-    # Start both servers in separate threads
-    backend_thread = threading.Thread(target=run_backend, daemon=True)
-    frontend_thread = threading.Thread(target=run_frontend, daemon=True)
-    
-    try:
-        # Start backend first
-        backend_thread.start()
-        print("Waiting for backend to start...")
-        time.sleep(3)
+        # Check optional packages
+        optional_packages = {
+            'speech_recognition': 'Speech recognition',
+            'pydub': 'Audio processing'
+        }
         
-        # Start frontend
-        frontend_thread.start()
-        print("Waiting for frontend to start...")
-        time.sleep(2)
+        for package, description in optional_packages.items():
+            try:
+                __import__(package)
+                print(f"  ✅ {package} - {description}")
+            except ImportError:
+                print(f"  ⚠️  {package} - {description} (optional)")
         
-        print("\n" + "=" * 50)
-        print("FlavorCraft is running!")
-        print("Frontend: http://localhost:3000")
-        print("Backend:  http://localhost:5007")
-        print("=" * 50)
-        print("Press Ctrl+C to stop both servers")
+        if missing_packages:
+            print(f"\n⚠️  Missing required packages: {', '.join(missing_packages)}")
+            print("📦 Install with: pip install -r requirements.txt")
+            return False
         
-        # Keep main thread alive
-        while True:
-            time.sleep(1)
+        print("✅ All required dependencies available")
+        return True
+    
+    def check_npm(self):
+        """Check Node.js and npm"""
+        try:
+            result = subprocess.run(['npm', '--version'], capture_output=True, text=True)
+            npm_version = result.stdout.strip()
             
-    except KeyboardInterrupt:
-        print("\n\nShutting down FlavorCraft...")
-        print("Goodbye!")
+            result = subprocess.run(['node', '--version'], capture_output=True, text=True)
+            node_version = result.stdout.strip()
+            
+            print(f"✅ Node.js {node_version}, npm {npm_version}")
+            return True
+        except FileNotFoundError:
+            print("❌ Node.js/npm not found")
+            print("📦 Install Node.js from: https://nodejs.org/")
+            return False
+    
+    def start_backend(self):
+        """Start Flask backend with ML models"""
+        print("🚀 Starting Flask backend with ML models...")
+        
+        # Check for app.py in backend directory
+        backend_app_path = self.backend_dir / "app.py"
+        
+        if not backend_app_path.exists():
+            print(f"❌ app.py not found at: {backend_app_path}")
+            print("📝 Expected locations:")
+            print(f"   • {self.backend_dir / 'app.py'}")
+            print(f"   • {self.current_dir / 'app.py'}")
+            return False
+        
+        print(f"✅ Found app.py at: {backend_app_path}")
+        
+        try:
+            env = os.environ.copy()
+            env.update({
+                'FLASK_APP': 'app.py',
+                'FLASK_ENV': 'development',
+                'FLASK_DEBUG': '1',
+                'PYTHONPATH': str(self.backend_dir)  # Set Python path to backend directory
+            })
+            
+            # Start backend from the backend directory
+            self.backend_process = subprocess.Popen(
+                [sys.executable, 'app.py'],
+                cwd=self.backend_dir,  # Run from backend directory
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            print(f"✅ Backend started (PID: {self.backend_process.pid})")
+            print(f"📁 Working directory: {self.backend_dir}")
+            print("📡 Backend URL: http://localhost:5007")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to start backend: {e}")
+            return False
+    
+    def start_frontend(self):
+        """Start React frontend"""
+        print("🎨 Starting React frontend...")
+        
+        # Look for package.json in multiple locations
+        frontend_paths = [
+            self.current_dir,  # Root directory
+            self.current_dir / "frontend",  # Frontend folder
+            self.current_dir / "src"  # Src folder
+        ]
+        
+        package_json_path = None
+        frontend_dir = None
+        
+        for path in frontend_paths:
+            if (path / "package.json").exists():
+                package_json_path = path / "package.json"
+                frontend_dir = path
+                break
+        
+        if not package_json_path:
+            print("❌ package.json not found")
+            print("📝 Looked in:")
+            for path in frontend_paths:
+                print(f"   • {path / 'package.json'}")
+            return False
+        
+        print(f"✅ Found package.json at: {package_json_path}")
+        
+        # Install npm dependencies if needed
+        if not (frontend_dir / "node_modules").exists():
+            print("📦 Installing npm dependencies...")
+            try:
+                subprocess.run(['npm', 'install'], cwd=frontend_dir, check=True)
+                print("✅ npm dependencies installed")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ npm install failed: {e}")
+                return False
+        
+        try:
+            env = os.environ.copy()
+            env.update({
+                'BROWSER': 'none',
+                'REACT_APP_BACKEND_URL': 'http://localhost:5007'
+            })
+            
+            self.frontend_process = subprocess.Popen(
+                ['npm', 'start'],
+                cwd=frontend_dir,  # Run from frontend directory
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            print(f"✅ Frontend started (PID: {self.frontend_process.pid})")
+            print(f"📁 Working directory: {frontend_dir}")
+            print("🌐 Frontend URL: http://localhost:3000")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to start frontend: {e}")
+            return False
+    
+    def monitor_processes(self):
+        """Monitor backend and frontend processes"""
+        def monitor_backend():
+            startup_messages_shown = False
+            
+            for line in iter(self.backend_process.stdout.readline, ''):
+                if line.strip():
+                    print(f"🔧 Backend: {line.strip()}")
+                    
+                    # Check for key startup messages
+                    if not startup_messages_shown:
+                        if "Image model" in line or "image model" in line:
+                            print("📸 Image classification model ready")
+                        elif "Audio model" in line or "audio model" in line:
+                            print("🎙️  Speech recognition model ready") 
+                        elif "Gemini model" in line or "gemini model" in line:
+                            print("🤖 Gemini AI model ready")
+                        elif "STARTING FLAVORCRAFT" in line or "Starting FlavorCraft" in line:
+                            print("✅ FlavorCraft backend fully initialized!")
+                            startup_messages_shown = True
+        
+        def monitor_frontend():
+            startup_complete = False
+            
+            for line in iter(self.frontend_process.stdout.readline, ''):
+                if line.strip():
+                    print(f"🎨 Frontend: {line.strip()}")
+                    
+                    if not startup_complete and ("compiled successfully" in line.lower() or "webpack compiled" in line.lower()):
+                        print("✅ Frontend compilation complete!")
+                        startup_complete = True
+        
+        # Start monitoring threads
+        if self.backend_process:
+            backend_thread = threading.Thread(target=monitor_backend, daemon=True)
+            backend_thread.start()
+        
+        if self.frontend_process:
+            frontend_thread = threading.Thread(target=monitor_frontend, daemon=True)
+            frontend_thread.start()
+    
+    def cleanup(self):
+        """Clean up processes"""
+        print("\n🧹 Shutting down FlavorCraft...")
+        
+        if self.backend_process:
+            print("🔧 Stopping backend...")
+            self.backend_process.terminate()
+            try:
+                self.backend_process.wait(timeout=5)
+                print("✅ Backend stopped")
+            except subprocess.TimeoutExpired:
+                print("⚠️  Force killing backend...")
+                self.backend_process.kill()
+        
+        if self.frontend_process:
+            print("🎨 Stopping frontend...")
+            self.frontend_process.terminate()
+            try:
+                self.frontend_process.wait(timeout=5)
+                print("✅ Frontend stopped")
+            except subprocess.TimeoutExpired:
+                print("⚠️  Force killing frontend...")
+                self.frontend_process.kill()
+    
+    def run(self):
+        """Main run function"""
+        print("🍕" * 25)
+        print("🚀 FLAVORCRAFT DEVELOPMENT SERVER")
+        print("🍕" * 25)
+        print("🤖 Multi-modal Recipe Generation Platform")
+        print("📊 Custom Dataset + Speech + Vision + AI")
+        print("🍕" * 25)
+        
+        # Pre-flight checks
+        if not self.check_system_requirements():
+            sys.exit(1)
+        
+        if not self.check_project_structure():
+            sys.exit(1)
+        
+        if not self.check_dependencies():
+            sys.exit(1)
+        
+        if not self.check_npm():
+            sys.exit(1)
+        
+        # Check dataset (non-blocking)
+        self.check_dataset()
+        
+        # Start services
+        print("\n🚀 Starting FlavorCraft services...")
+        
+        if not self.start_backend():
+            sys.exit(1)
+        
+        # Wait for backend to initialize
+        time.sleep(5)
+        
+        if not self.start_frontend():
+            print("⚠️  Frontend failed to start, running backend only")
+        
+        # Monitor processes
+        self.monitor_processes()
+        
+        # Show status
+        time.sleep(3)
+        print("\n" + "="*60)
+        print("🎉 FLAVORCRAFT IS RUNNING!")
+        print("="*60)
+        print("🔧 Backend API: http://localhost:5007")
+        print("🎨 Frontend UI: http://localhost:3000")
+        print("")
+        print("🎯 Features Available:")
+        print("   📸 Image Food Classification")
+        print("   🎙️  Speech-to-Text Processing")  
+        print("   📝 Text Ingredient Analysis")
+        print("   🤖 AI Recipe Generation")
+        print("")
+        print("📁 Project Structure:")
+        print(f"   🔧 Backend: {self.backend_dir}")
+        print(f"   🎨 Frontend: {self.current_dir}")
+        print(f"   📊 Dataset: Looking for data/archive/images/")
+        print("")
+        print("💡 Usage:")
+        print("   1. Enter available ingredients")
+        print("   2. Upload a food image")
+        print("   3. Record cooking preferences")
+        print("   4. Get AI-generated recipe!")
+        print("="*60)
+        print("💡 Press Ctrl+C to stop all services")
+        
+        # Set up signal handlers
+        def signal_handler(sig, frame):
+            self.cleanup()
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        # Keep running
+        try:
+            while True:
+                time.sleep(1)
+                
+                # Check if processes are still running
+                if self.backend_process and self.backend_process.poll() is not None:
+                    print("❌ Backend process died unexpectedly")
+                    break
+                    
+                if self.frontend_process and self.frontend_process.poll() is not None:
+                    print("❌ Frontend process died unexpectedly")
+                    break
+                    
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.cleanup()
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    dev_server = FlavorCraftDev()
+    dev_server.run()

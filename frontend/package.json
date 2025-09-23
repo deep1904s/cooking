@@ -1,7 +1,7 @@
 {
   "name": "flavorcraft-frontend",
   "version": "1.0.0",
-  "description": "FlavorCraft - LLM-Powered Multimodal Recipe Generator Frontend",
+  "description": "FlavorCraft - Smart Recipe Curation Platform Frontend",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.4",
@@ -42,11 +42,11 @@
   "homepage": ".",
   "keywords": [
     "recipe",
-    "ai",
-    "multimodal",
     "cooking",
-    "llm",
-    "gemini",
+    "multimodal",
+    "curation",
+    "food",
+    "kitchen",
     "react"
   ],
   "author": "FlavorCraft Team",
