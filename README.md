@@ -115,28 +115,7 @@ FlavorCraft flips the script by being **ingredient-centric** and **preference-aw
    - Frontend: http://localhost:3000
    - API: http://localhost:5007
 
-## 📁 Project Structure
 
-```
-FlavorCraft/
-├── setup.py              # Comprehensive setup script
-├── start-dev.py          # Development environment setup
-├── app.py                # Flask backend application
-├── requirements.txt      # Python dependencies
-├── package.json          # Node.js dependencies
-├── .env                  # Configuration file (auto-generated)
-├── public/
-│   └── index.html        # React app entry point
-├── src/
-│   ├── index.js         # React root component
-│   ├── App.js           # Main application component
-│   └── index.css        # Enhanced styling
-├── models/              # AI model storage
-├── uploads/             # File upload temporary storage
-├── temp/                # Processing temporary files
-├── logs/                # Application logs
-└── cache/               # API response caching
-```
 
 ## 🔧 Configuration
 
